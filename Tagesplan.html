@@ -1,0 +1,82 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tagesplan</title>
+<style>
+body{font-family:Arial,sans-serif;background:#111827;color:#fff;margin:0;padding:30px}
+h1{text-align:center}
+#controls{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
+input,button{padding:10px;border-radius:8px;border:none}
+button{background:#3b82f6;color:#fff;cursor:pointer}
+#timeline{max-width:700px;margin:auto}
+.hour{display:grid;grid-template-columns:80px 1fr;gap:10px;align-items:center;margin:6px 0}
+.label{color:#bbb}
+.slot{background:#1f2937;border:1px solid #374151;border-radius:10px;min-height:44px;padding:8px}
+.task{background:#2563eb;padding:8px;border-radius:8px;margin:4px 0;cursor:move}
+</style>
+</head>
+<body>
+<h1>Mein Tagesplan</h1>
+
+<div id="controls">
+<input id="time" type="time">
+<input id="text" type="text" placeholder="Aufgabe">
+<button onclick="addTask()">Hinzufügen</button>
+</div>
+
+<div id="timeline"></div>
+
+<script>
+const timeline=document.getElementById("timeline");
+for(let h=0;h<24;h++){
+ const row=document.createElement("div");
+ row.className="hour";
+ row.innerHTML=`<div class="label">${String(h).padStart(2,"0")}:00</div>
+ <div class="slot" data-hour="${h}" ondragover="event.preventDefault()" ondrop="drop(event)"></div>`;
+ timeline.appendChild(row);
+}
+function save(){
+ const data={};
+ document.querySelectorAll(".slot").forEach(s=>{
+   data[s.dataset.hour]=[...s.querySelectorAll(".task")].map(t=>t.textContent);
+ });
+ localStorage.setItem("planner",JSON.stringify(data));
+}
+function load(){
+ const data=JSON.parse(localStorage.getItem("planner")||"{}");
+ Object.entries(data).forEach(([h,tasks])=>{
+   const slot=document.querySelector(`.slot[data-hour="${h}"]`);
+   tasks.forEach(txt=>makeTask(slot,txt));
+ });
+}
+function makeTask(slot,txt){
+ const d=document.createElement("div");
+ d.className="task";
+ d.draggable=true;
+ d.textContent=txt;
+ d.ondragstart=e=>e.dataTransfer.setData("text/plain",txt);
+ slot.appendChild(d);
+}
+function addTask(){
+ const t=document.getElementById("time").value;
+ const txt=document.getElementById("text").value.trim();
+ if(!t||!txt)return;
+ const hour=parseInt(t.split(":")[0]);
+ makeTask(document.querySelector(`.slot[data-hour="${hour}"]`),txt);
+ document.getElementById("text").value="";
+ save();
+}
+function drop(e){
+ e.preventDefault();
+ const txt=e.dataTransfer.getData("text/plain");
+ document.querySelectorAll(".task").forEach(x=>{if(x.textContent===txt)x.remove();});
+ makeTask(e.currentTarget,txt);
+ save();
+}
+load();
+</script>
+</body>
+</html>
