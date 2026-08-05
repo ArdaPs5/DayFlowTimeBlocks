@@ -15,7 +15,25 @@ button{background:#3b82f6;color:#fff;cursor:pointer}
 .hour{display:grid;grid-template-columns:80px 1fr;gap:10px;align-items:center;margin:6px 0}
 .label{color:#bbb}
 .slot{background:#1f2937;border:1px solid #374151;border-radius:10px;min-height:44px;padding:8px}
-.task{background:#2563eb;padding:8px;border-radius:8px;margin:4px 0;cursor:move}
+.task{
+background:#2563eb;
+padding:8px;
+border-radius:8px;
+margin:4px 0;
+cursor:move;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.delete-btn{
+background:#ef4444;
+color:white;
+border:none;
+border-radius:6px;
+padding:4px 8px;
+cursor:pointer;
+}
 </style>
 </head>
 <body>
@@ -25,6 +43,7 @@ button{background:#3b82f6;color:#fff;cursor:pointer}
 <input id="time" type="time">
 <input id="text" type="text" placeholder="Aufgabe">
 <button onclick="addTask()">Hinzufügen</button>
+<button onclick="clearAll()">Alles löschen</button>
 </div>
 
 <div id="timeline"></div>
@@ -41,7 +60,7 @@ for(let h=0;h<24;h++){
 function save(){
  const data={};
  document.querySelectorAll(".slot").forEach(s=>{
-   data[s.dataset.hour]=[...s.querySelectorAll(".task")].map(t=>t.textContent);
+   data[s.dataset.hour]=[...s.querySelectorAll(".task")].map(t=>t.querySelector("span").textContent);
  });
  localStorage.setItem("planner",JSON.stringify(data));
 }
@@ -53,12 +72,24 @@ function load(){
  });
 }
 function makeTask(slot,txt){
- const d=document.createElement("div");
- d.className="task";
- d.draggable=true;
- d.textContent=txt;
- d.ondragstart=e=>e.dataTransfer.setData("text/plain",txt);
- slot.appendChild(d);
+  const d=document.createElement("div");
+  d.className="task";
+  d.draggable=true;
+
+  d.innerHTML = `
+    <span>${txt}</span>
+    <button class="delete-btn">❌</button>
+  `;
+
+  d.ondragstart=e=>e.dataTransfer.setData("text/plain",txt);
+
+  d.querySelector(".delete-btn").onclick=function(e){
+    e.stopPropagation();
+    d.remove();
+    save();
+  };
+
+  slot.appendChild(d);
 }
 function addTask(){
  const t=document.getElementById("time").value;
@@ -72,9 +103,19 @@ function addTask(){
 function drop(e){
  e.preventDefault();
  const txt=e.dataTransfer.getData("text/plain");
- document.querySelectorAll(".task").forEach(x=>{if(x.textContent===txt)x.remove();});
+ document.querySelectorAll(".task").forEach(x=>{
+    if(x.querySelector("span").textContent===txt){
+        x.remove();
+    }
+});
  makeTask(e.currentTarget,txt);
  save();
+}
+function clearAll(){
+    if(confirm("Alle Aufgaben löschen?")){
+        localStorage.removeItem("planner");
+        document.querySelectorAll(".task").forEach(t=>t.remove());
+    }
 }
 load();
 </script>
