@@ -33,6 +33,50 @@ border:none;
 border-radius:6px;
 padding:4px 8px;
 cursor:pointer;
+ }
+ #progress-box{
+max-width:700px;
+margin:15px auto;
+}
+
+#progress-text{
+margin-bottom:8px;
+font-weight:bold;
+}
+
+#progress-bar{
+width:100%;
+height:20px;
+background:#374151;
+border-radius:10px;
+overflow:hidden;
+}
+
+#progress-fill{
+height:100%;
+width:0%;
+background:#22c55e;
+transition:.3s;
+}
+
+.task{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:10px;
+}
+
+.task-left{
+display:flex;
+align-items:center;
+gap:10px;
+flex:1;
+}
+
+.task.done span{
+text-decoration:line-through;
+opacity:.6;
+}
 }
 </style>
 </head>
@@ -44,6 +88,12 @@ cursor:pointer;
 <input id="text" type="text" placeholder="Aufgabe">
 <button onclick="addTask()">Hinzufügen</button>
 <button onclick="clearAll()">Alles löschen</button>
+ <div id="progress-box">
+    <div id="progress-text">0% erledigt</div>
+    <div id="progress-bar">
+        <div id="progress-fill"></div>
+    </div>
+</div>
 </div>
 
 <div id="timeline"></div>
@@ -71,26 +121,49 @@ function load(){
    tasks.forEach(txt=>makeTask(slot,txt));
  });
 }
-function makeTask(slot,txt){
+function makeTask(slot,txt,done=false){
+
   const d=document.createElement("div");
   d.className="task";
+  if(done)d.classList.add("done");
+
   d.draggable=true;
 
-  d.innerHTML = `
-    <span>${txt}</span>
-    <button class="delete-btn">❌</button>
+  d.innerHTML=`
+      <div class="task-left">
+          <input type="checkbox" class="check" ${done?"checked":""}>
+          <span>${txt}</span>
+      </div>
+
+      <button class="delete-btn">❌</button>
   `;
 
   d.ondragstart=e=>e.dataTransfer.setData("text/plain",txt);
 
   d.querySelector(".delete-btn").onclick=function(e){
-    e.stopPropagation();
-    d.remove();
-    save();
+      e.stopPropagation();
+      d.remove();
+      save();
+      updateProgress();
+  };
+
+  d.querySelector(".check").onchange=function(){
+
+      if(this.checked){
+          d.classList.add("done");
+      }else{
+          d.classList.remove("done");
+      }
+
+      save();
+      updateProgress();
   };
 
   slot.appendChild(d);
+
+  updateProgress();
 }
+
 function addTask(){
  const t=document.getElementById("time").value;
  const txt=document.getElementById("text").value.trim();
@@ -116,8 +189,26 @@ function clearAll(){
         localStorage.removeItem("planner");
         document.querySelectorAll(".task").forEach(t=>t.remove());
     }
+ }
+ 
+function updateProgress(){
+
+    const tasks=document.querySelectorAll(".task");
+    const done=document.querySelectorAll(".task.done");
+
+    const percent=tasks.length
+        ?Math.round(done.length/tasks.length*100)
+        :0;
+
+    document.getElementById("progress-text").textContent=
+        percent+"% erledigt";
+
+    document.getElementById("progress-fill").style.width=
+        percent+"%";
+}
 }
 load();
+updateProgress();
 </script>
 </body>
 </html>
